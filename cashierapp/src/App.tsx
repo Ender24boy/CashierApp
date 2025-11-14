@@ -8,47 +8,61 @@ export const PaymentContext = createContext<{
   setNote: (note: string) => void;
   amount: number | null;
   setAmount: (amount: number | null) => void;
+  setRecipient: (recipient: string) => void;
 }>({
   recipient: '',
   note: '',
   setNote: () => {},
   amount: null,
-  setAmount: () => {}
+  setAmount: () => {},
+  setRecipient: () => {}
 });
 
-
-// Lazy load all payment method components
+// Lazy load payment method components
 const PayPalSection = lazy(() => import('./components/payment-methods/PayPal'));
 const CashAppSection = lazy(() => import('./components/payment-methods/CashApp'));
 const ChimeSection = lazy(() => import('./components/payment-methods/Chime'));
 const VenmoSection = lazy(() => import('./components/payment-methods/Venmo'));
 
-
 function App() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [amount, setAmount] = useState<number | null>(null);
-  const recipient = import.meta.env.VITE_RECIPIENT_ID || '';
+  const [recipient, setRecipient] = useState('');
+
+  // Matching env variables
+  const ENV_RECIPIENTS: Record<string, string> = {
+    venmo: import.meta.env.VITE_VENMO_RECIPIENT_ID || '',
+    paypal: import.meta.env.VITE_PAYPAL_RECIPIENT_ID || '',
+    cashapp: import.meta.env.VITE_CASHAPP_RECIPIENT_ID || '',
+    chime: import.meta.env.VITE_CHIME_RECIPIENT_ID || ''
+  };
 
   const toggleSection = (section: string) => {
-    setActiveSection(activeSection === section ? null : section);
+    const isClosing = activeSection === section;
+    setActiveSection(isClosing ? null : section);
+
+    if (!isClosing) {
+      // set correct recipient based on payment method selected
+      setRecipient(ENV_RECIPIENTS[section]);
+    }
   };
 
   const paymentMethods = [
     { id: 'venmo', name: 'Venmo', Component: VenmoSection, logo: '/logos/venmo.png' },
     { id: 'paypal', name: 'PayPal', Component: PayPalSection, logo: '/logos/paypal.png' },
     { id: 'cashapp', name: 'CashApp', Component: CashAppSection, logo: '/logos/cashapp.png' },
-    { id: 'chime', name: 'Chime', Component: ChimeSection, logo: '/logos/chime.png' },
-    //{ id: 'applepay', name: 'Apple Pay', Component: ApplePaySection, logo: '/logos/apple.png' }
+    { id: 'chime', name: 'Chime', Component: ChimeSection, logo: '/logos/chime.png' }
   ];
 
   return (
-    <PaymentContext.Provider value={{ recipient, note, setNote, amount, setAmount }}>
+    <PaymentContext.Provider value={{ recipient, note, setNote, amount, setAmount, setRecipient }}>
       <div className="app-container">
         <header className="app-header">
           <h1>Cashier App</h1>
           <h2>Please select your payment method below</h2>
         </header>
+
         <section className="amount-section">
           <label htmlFor="amount-select">Select amount (USD):</label>
           <select
@@ -57,7 +71,8 @@ function App() {
             onChange={(e) => {
               const val = e.target.value;
               setAmount(val ? Number(val) : null);
-              setActiveSection(null); // reset active section when amount changes
+              setActiveSection(null);
+              setRecipient(''); // Clear when amount changes
             }}
             className="amount-select"
           >
@@ -84,7 +99,8 @@ function App() {
                     <img src={method.logo} alt={`${method.name} logo`} className="payment-logo" />
                   </span>
                 </button>
-                <div className={`collapsible-content ${activeSection === method.id ? 'open' : ''}`}> 
+
+                <div className={`collapsible-content ${activeSection === method.id ? 'open' : ''}`}>
                   <div className="content-inner">
                     {activeSection === method.id && (
                       <Suspense fallback={<div>Loading...</div>}>
@@ -99,7 +115,7 @@ function App() {
         )}
       </div>
     </PaymentContext.Provider>
-  )
+  );
 }
 
-export default App
+export default App;

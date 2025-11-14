@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import './Chime.css';
+import { PaymentContext } from '../../App';
 
 const ChimeSection: React.FC = () => {
+  const { recipient } = useContext(PaymentContext);
+    
   return (
     <div className="chime-section">
       <div className="section-content">
@@ -14,6 +17,7 @@ const ChimeSection: React.FC = () => {
             <li>Choose one of the following methods:
               <ul>
                 <li>Enter recipient's phone number: (TBD)</li>
+                <li>Enter recipient's name: {recipient}</li>
               </ul>
             </li>
           </ol>
